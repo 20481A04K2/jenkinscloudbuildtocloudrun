@@ -4,7 +4,7 @@ pipeline {
   environment {
     PROJECT_ID = 'euphoric-world-464505-q1'
     REGION = 'asia-east1'
-    TRIGGER_NAME = 'jenkins-cloudrun-trigger'
+    TRIGGER_NAME = 'vamsi-trigger'
   }
 
   stages {
