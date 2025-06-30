@@ -6,6 +6,7 @@ pipeline {
     TRIGGER_NAME = 'jenkins-cloudrun-trigger'
     GITHUB_REPO_NAME = 'jenkinscloudbuildtocloudrun'
     GITHUB_REPO_OWNER = '20481A04K2'
+    GITHUB_REPO_FULL = '20481A04K2/jenkinscloudbuildtocloudrun'
     SA_EMAIL = '519516300720-compute@developer.gserviceaccount.com'
     REGION = 'asia-east1'
   }
@@ -26,21 +27,17 @@ pipeline {
 
             def result = sh(script: """
               gcloud beta builds triggers create github \
-                --name=$TRIGGER_NAME \
-                --region=$REGION \
-                --repo-name=$GITHUB_REPO_NAME \
-                --repo-owner=$GITHUB_REPO_OWNER \
-                --branch-pattern='^main\$' \
-                --build-config=cloudbuild.yaml \
-                --project=$PROJECT_ID \
-                --service-account=$SA_EMAIL
+                --name="$TRIGGER_NAME" \
+                --region="$REGION" \
+                --repository="$GITHUB_REPO_FULL" \
+                --branch-pattern="^main\$" \
+                --build-config="cloudbuild.yaml" \
+                --service-account="$SA_EMAIL" \
+                --project="$PROJECT_ID"
             """, returnStatus: true)
 
             if (result != 0) {
-              echo "⚠️ Failed to create Cloud Build GitHub trigger. Make sure GitHub is connected in Cloud Console: https://console.cloud.google.com/cloud-build/triggers/connect"
-              currentBuild.result = 'UNSTABLE'
-            } else {
-              echo "✅ Trigger successfully created."
+              error "⚠️ Failed to create Cloud Build GitHub trigger. Make sure GitHub is connected in Cloud Console: https://console.cloud.google.com/cloud-build/triggers/connect"
             }
           } else {
             echo "✅ Trigger already exists: $TRIGGER_NAME"
@@ -50,11 +47,6 @@ pipeline {
     }
 
     stage('Trigger Build') {
-      when {
-        expression {
-          return currentBuild.result != 'FAILURE'
-        }
-      }
       steps {
         echo "▶️ Manually starting the build using Cloud Build trigger..."
         sh """
@@ -72,9 +64,6 @@ pipeline {
     }
     success {
       echo "✅ Cloud Build trigger created (if needed) and started."
-    }
-    unstable {
-      echo "⚠️ Trigger was not created due to GitHub repo not being connected to Cloud Build."
     }
   }
 }
