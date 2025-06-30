@@ -4,9 +4,10 @@ pipeline {
   environment {
     PROJECT_ID = 'euphoric-world-464505-q1'
     TRIGGER_NAME = 'jenkins-cloudrun-trigger'
-    GITHUB_REPO_MIRROR = '20481A04K2_jenkinscloudbuildtocloudrun' // first-gen mirrored repo name
-    SA_EMAIL = '519516300720-compute@developer.gserviceaccount.com'
+    GITHUB_REPO_NAME = 'jenkinscloudbuildtocloudrun'
+    GITHUB_REPO_OWNER = '20481A04K2'
     REGION = 'asia-east1'
+    SA_EMAIL = '519516300720-compute@developer.gserviceaccount.com'
   }
 
   stages {
@@ -15,30 +16,28 @@ pipeline {
         script {
           def triggerExists = sh(script: """
             gcloud beta builds triggers list \
-              --project=$PROJECT_ID \
-              --filter="name=$TRIGGER_NAME" \
+              --project=${PROJECT_ID} \
+              --region=${REGION} \
+              --filter="name=${TRIGGER_NAME}" \
               --format="value(name)"
           """, returnStdout: true).trim()
 
           if (!triggerExists) {
-            echo "🚀 Trigger does not exist. Attempting to create Cloud Build trigger..."
+            echo "🚀 Trigger does not exist. Creating Cloud Build trigger..."
 
-            def result = sh(script: """
-              gcloud beta builds triggers create \
-                --name="$TRIGGER_NAME" \
-                --region="$REGION" \
-                --repo="$GITHUB_REPO_MIRROR" \
+            sh """
+              gcloud beta builds triggers create github \
+                --name=${TRIGGER_NAME} \
+                --region=${REGION} \
+                --repository=${GITHUB_REPO_NAME} \
+                --repository-owner=${GITHUB_REPO_OWNER} \
                 --branch-pattern="^main\$" \
-                --build-config="cloudbuild.yaml" \
-                --service-account="$SA_EMAIL" \
-                --project="$PROJECT_ID"
-            """, returnStatus: true)
-
-            if (result != 0) {
-              error "⚠️ Failed to create Cloud Build trigger. Ensure the mirrored GitHub repo exists in Cloud Console: https://console.cloud.google.com/cloud-build/triggers"
-            }
+                --build-config=cloudbuild.yaml \
+                --service-account=${SA_EMAIL} \
+                --project=${PROJECT_ID}
+            """
           } else {
-            echo "✅ Trigger already exists: $TRIGGER_NAME"
+            echo "✅ Trigger already exists: ${TRIGGER_NAME}"
           }
         }
       }
@@ -48,9 +47,10 @@ pipeline {
       steps {
         echo "▶️ Manually starting the build using Cloud Build trigger..."
         sh """
-          gcloud beta builds triggers run $TRIGGER_NAME \
+          gcloud beta builds triggers run ${TRIGGER_NAME} \
             --branch=main \
-            --project=$PROJECT_ID
+            --region=${REGION} \
+            --project=${PROJECT_ID}
         """
       }
     }
@@ -61,7 +61,7 @@ pipeline {
       echo "❌ Pipeline failed. Check Cloud Build logs in GCP Console."
     }
     success {
-      echo "✅ Cloud Build trigger created (if needed) and started."
+      echo "✅ Cloud Build trigger created (if needed) and triggered successfully."
     }
   }
 }
