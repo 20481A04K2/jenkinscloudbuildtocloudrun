@@ -4,9 +4,7 @@ pipeline {
   environment {
     PROJECT_ID = 'euphoric-world-464505-q1'
     TRIGGER_NAME = 'jenkins-cloudrun-trigger'
-    GITHUB_REPO_NAME = 'jenkinscloudbuildtocloudrun'
-    GITHUB_REPO_OWNER = '20481A04K2'
-    GITHUB_REPO_FULL = '20481A04K2/jenkinscloudbuildtocloudrun'
+    GITHUB_REPO_MIRROR = '20481A04K2_jenkinscloudbuildtocloudrun' // first-gen mirrored repo name
     SA_EMAIL = '519516300720-compute@developer.gserviceaccount.com'
     REGION = 'asia-east1'
   }
@@ -26,10 +24,10 @@ pipeline {
             echo "🚀 Trigger does not exist. Attempting to create Cloud Build trigger..."
 
             def result = sh(script: """
-              gcloud beta builds triggers create github \
+              gcloud beta builds triggers create \
                 --name="$TRIGGER_NAME" \
                 --region="$REGION" \
-                --repository="$GITHUB_REPO_FULL" \
+                --repo="$GITHUB_REPO_MIRROR" \
                 --branch-pattern="^main\$" \
                 --build-config="cloudbuild.yaml" \
                 --service-account="$SA_EMAIL" \
@@ -37,7 +35,7 @@ pipeline {
             """, returnStatus: true)
 
             if (result != 0) {
-              error "⚠️ Failed to create Cloud Build GitHub trigger. Make sure GitHub is connected in Cloud Console: https://console.cloud.google.com/cloud-build/triggers/connect"
+              error "⚠️ Failed to create Cloud Build trigger. Ensure the mirrored GitHub repo exists in Cloud Console: https://console.cloud.google.com/cloud-build/triggers"
             }
           } else {
             echo "✅ Trigger already exists: $TRIGGER_NAME"
