@@ -6,10 +6,28 @@ steps:
       - |
         echo "🔁 Installing git and zip..."
         apt-get update && apt-get install -y git zip
+
         echo "📥 Cloning GitHub repo..."
         git clone https://github.com/20481A04K2/jenkinscloudbuildtocloudrun.git
-        cd jenkinscloudbuildtocloudrun
-        zip -r source-code.zip 
+
+        echo "📂 Checking repo contents..."
+        if [ -d "jenkinscloudbuildtocloudrun" ]; then
+          cd jenkinscloudbuildtocloudrun
+          echo "📄 Files in repo:"
+          ls -la
+          
+          if [ -f "app.py" ]; then
+            echo "✅ Found app.py, creating zip..."
+            zip -r ../source-code.zip .
+          else
+            echo "❌ app.py not found in repo. Check path or branch."
+            exit 1
+          fi
+        else
+          echo "❌ Failed to clone repo. Directory not found."
+          exit 1
+        fi
+
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'Create Artifact Registry Repo if Not Exists'
