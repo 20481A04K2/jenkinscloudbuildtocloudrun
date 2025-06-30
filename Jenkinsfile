@@ -25,7 +25,7 @@ pipeline {
             echo "🚀 Trigger does not exist. Creating Cloud Build trigger..."
 
             sh """
-              gcloud beta builds triggers create \
+              gcloud beta builds triggers create github \
                 --name=${TRIGGER_NAME} \
                 --region=${REGION} \
                 --repository=${REPO_ID} \
