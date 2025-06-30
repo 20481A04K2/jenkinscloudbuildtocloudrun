@@ -67,3 +67,6 @@ steps:
 
 images:
   - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY   
+  
