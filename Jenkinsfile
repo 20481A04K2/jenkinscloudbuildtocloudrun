@@ -17,14 +17,14 @@ pipeline {
           def triggerExists = sh(script: """
             gcloud beta builds triggers list \
               --project=$PROJECT_ID \
-              --filter="name:$TRIGGER_NAME" \
+              --filter="name=$TRIGGER_NAME" \
               --format="value(name)"
-            """, returnStdout: true).trim()
+          """, returnStdout: true).trim()
 
           if (!triggerExists) {
-            echo "🚀 Trigger does not exist. Creating Cloud Build trigger..."
+            echo "🚀 Trigger does not exist. Attempting to create Cloud Build trigger..."
 
-            sh """
+            def result = sh(script: """
               gcloud beta builds triggers create github \
                 --name=$TRIGGER_NAME \
                 --region=$REGION \
@@ -34,7 +34,14 @@ pipeline {
                 --build-config=cloudbuild.yaml \
                 --project=$PROJECT_ID \
                 --service-account=$SA_EMAIL
-            """
+            """, returnStatus: true)
+
+            if (result != 0) {
+              echo "⚠️ Failed to create Cloud Build GitHub trigger. Make sure GitHub is connected in Cloud Console: https://console.cloud.google.com/cloud-build/triggers/connect"
+              currentBuild.result = 'UNSTABLE'
+            } else {
+              echo "✅ Trigger successfully created."
+            }
           } else {
             echo "✅ Trigger already exists: $TRIGGER_NAME"
           }
@@ -43,6 +50,11 @@ pipeline {
     }
 
     stage('Trigger Build') {
+      when {
+        expression {
+          return currentBuild.result != 'FAILURE'
+        }
+      }
       steps {
         echo "▶️ Manually starting the build using Cloud Build trigger..."
         sh """
@@ -60,6 +72,9 @@ pipeline {
     }
     success {
       echo "✅ Cloud Build trigger created (if needed) and started."
+    }
+    unstable {
+      echo "⚠️ Trigger was not created due to GitHub repo not being connected to Cloud Build."
     }
   }
 }
