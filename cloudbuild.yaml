@@ -19,14 +19,14 @@ steps:
         REGION=asia-east1
         REPO_NAME=my-repo
         PROJECT_ID=euphoric-world-464505-q1
-        if ! gcloud artifacts repositories describe $REPO_NAME --location=$REGION --project=$PROJECT_ID >/dev/null 2>&1; then
-          echo "📦 Creating Artifact Registry repository $REPO_NAME..."
-          gcloud artifacts repositories create $REPO_NAME \
+        if ! gcloud artifacts repositories describe $$REPO_NAME --location=$$REGION --project=$$PROJECT_ID >/dev/null 2>&1; then
+          echo "📦 Creating Artifact Registry repository $$REPO_NAME..."
+          gcloud artifacts repositories create $$REPO_NAME \
             --repository-format=docker \
-            --location=$REGION \
-            --project=$PROJECT_ID
+            --location=$$REGION \
+            --project=$$PROJECT_ID
         else
-          echo "✅ Artifact Registry $REPO_NAME already exists."
+          echo "✅ Artifact Registry $$REPO_NAME already exists."
         fi
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -52,21 +52,21 @@ steps:
         REGION=asia-east1
         IMAGE=asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA
 
-        if gcloud run services describe $SERVICE_NAME --region $REGION --project euphoric-world-464505-q1 >/dev/null 2>&1; then
+        if gcloud run services describe $$SERVICE_NAME --region=$$REGION --project=euphoric-world-464505-q1 >/dev/null 2>&1; then
           echo "🔁 Updating Cloud Run service..."
         else
           echo "✨ Creating new Cloud Run service..."
         fi
 
-        gcloud run deploy $SERVICE_NAME \
-          --image=$IMAGE \
+        gcloud run deploy $$SERVICE_NAME \
+          --image=$$IMAGE \
           --platform=managed \
-          --region=$REGION \
+          --region=$$REGION \
           --allow-unauthenticated \
           --project=euphoric-world-464505-q1
 
 images:
   - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
+
 options:
-  logging: CLOUD_LOGGING_ONLY   
-  
+  logging: CLOUD_LOGGING_ONLY
