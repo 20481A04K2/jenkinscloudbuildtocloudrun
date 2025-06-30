@@ -1,0 +1,69 @@
+steps:
+  - name: 'gcr.io/cloud-builders/git'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "🔁 Cloning GitHub repo..."
+        git clone https://github.com/20481A04K2/jenkinscloudbuildtocloudrun.git
+        cd jenkinscloudbuildtocloudrun
+        zip -r source-code.zip .
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Create Artifact Registry Repo if Not Exists'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🔍 Checking Artifact Registry repository..."
+        REGION=asia-east1
+        REPO_NAME=my-repo
+        PROJECT_ID=euphoric-world-464505-q1
+        if ! gcloud artifacts repositories describe $REPO_NAME --location=$REGION --project=$PROJECT_ID >/dev/null 2>&1; then
+          echo "📦 Creating Artifact Registry repository $REPO_NAME..."
+          gcloud artifacts repositories create $REPO_NAME \
+            --repository-format=docker \
+            --location=$REGION \
+            --project=$PROJECT_ID
+        else
+          echo "✅ Artifact Registry $REPO_NAME already exists."
+        fi
+
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'jenkinscloudbuildtocloudrun'
+    args:
+      - build
+      - '-t'
+      - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🚀 Deploying to Cloud Run..."
+        SERVICE_NAME=my-cloudrun-service
+        REGION=asia-east1
+        IMAGE=asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA
+
+        if gcloud run services describe $SERVICE_NAME --region $REGION --project euphoric-world-464505-q1 >/dev/null 2>&1; then
+          echo "🔁 Updating Cloud Run service..."
+        else
+          echo "✨ Creating new Cloud Run service..."
+        fi
+
+        gcloud run deploy $SERVICE_NAME \
+          --image=$IMAGE \
+          --platform=managed \
+          --region=$REGION \
+          --allow-unauthenticated \
+          --project=euphoric-world-464505-q1
+
+images:
+  - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
