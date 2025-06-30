@@ -4,10 +4,12 @@ steps:
     args:
       - '-c'
       - |
-        echo "🔁 Cloning GitHub repo..."
+        echo "🔁 Installing git and zip..."
+        apt-get update && apt-get install -y git zip
+        echo "📥 Cloning GitHub repo..."
         git clone https://github.com/20481A04K2/jenkinscloudbuildtocloudrun.git
         cd jenkinscloudbuildtocloudrun
-        zip -r source-code.zip .
+        zip -r source-code.zip 
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'Create Artifact Registry Repo if Not Exists'
