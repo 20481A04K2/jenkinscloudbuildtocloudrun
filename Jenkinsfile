@@ -3,9 +3,9 @@ pipeline {
 
   environment {
     PROJECT_ID = 'euphoric-world-464505-q1'
-    TRIGGER_NAME = 'jenkins-cloudrun-trigger'
-    REPO_ID = '20481A04K2-jenkinscloudbuildtocloudrun'  // from Cloud Console 2nd-gen name
     REGION = 'asia-east1'
+    TRIGGER_NAME = 'jenkins-cloudrun-trigger'
+    REPO_ID = '20481A04K2-jenkinscloudbuildtocloudrun'  // from the linked repo name
     SA_EMAIL = '519516300720-compute@developer.gserviceaccount.com'
   }
 
@@ -25,7 +25,7 @@ pipeline {
             echo "🚀 Trigger does not exist. Creating Cloud Build trigger..."
 
             sh """
-              gcloud beta builds triggers create github \
+              gcloud beta builds triggers create \
                 --name=${TRIGGER_NAME} \
                 --region=${REGION} \
                 --repository=${REPO_ID} \
