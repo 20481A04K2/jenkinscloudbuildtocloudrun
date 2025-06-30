@@ -1,92 +1,71 @@
 steps:
-  - name: 'gcr.io/cloud-builders/git'
+  # Step 1: Clone GitHub repo and zip it
+  - name: 'ubuntu'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "🔁 Installing git and zip..."
-        apt-get update && apt-get install -y git zip
+        apt-get update && apt-get install -y git zip && \
+        git clone https://github.com/20481A04K2/jenkinscloudbuildtocloudrun.git && \
+        zip -r jenkinscloudbuildtocloudrun.zip jenkinscloudbuildtocloudrun
 
-        echo "📥 Cloning GitHub repo..."
-        git clone https://github.com/20481A04K2/jenkinscloudbuildtocloudrun.git
-
-        echo "📂 Checking repo contents..."
-        if [ -d "jenkinscloudbuildtocloudrun" ]; then
-          cd jenkinscloudbuildtocloudrun
-          echo "📄 Files in repo:"
-          ls -la
-          
-          if [ -f "app.py" ]; then
-            echo "✅ Found app.py, creating zip..."
-            zip -r ../source-code.zip .
-          else
-            echo "❌ app.py not found in repo. Check path or branch."
-            exit 1
-          fi
-        else
-          echo "❌ Failed to clone repo. Directory not found."
-          exit 1
-        fi
-
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'Create Artifact Registry Repo if Not Exists'
-    entrypoint: bash
+  # Step 2: Ensure Artifact Registry exists
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
     args:
-      - -c
+      - '-c'
       - |
-        echo "🔍 Checking Artifact Registry repository..."
-        REGION=asia-east1
-        REPO_NAME=my-repo
-        PROJECT_ID=euphoric-world-464505-q1
-        if ! gcloud artifacts repositories describe $$REPO_NAME --location=$$REGION --project=$$PROJECT_ID >/dev/null 2>&1; then
-          echo "📦 Creating Artifact Registry repository $$REPO_NAME..."
-          gcloud artifacts repositories create $$REPO_NAME \
+        if ! gcloud artifacts repositories describe my-repo --location=asia-east1 --project=euphoric-world-464505-q1; then
+          echo "Creating Artifact Registry..."
+          gcloud artifacts repositories create my-repo \
             --repository-format=docker \
-            --location=$$REGION \
-            --project=$$PROJECT_ID
+            --location=asia-east1 \
+            --project=euphoric-world-464505-q1
         else
-          echo "✅ Artifact Registry $$REPO_NAME already exists."
+          echo "Artifact Registry already exists."
         fi
 
+  # Step 3: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'jenkinscloudbuildtocloudrun'
     args:
-      - build
-      - '-t'
-      - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
-      - '.'
+      [
+        'build',
+        '-t',
+        'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:latest',
+        '.'
+      ]
 
+  # Step 4: Push Docker image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      - push
-      - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
+      [
+        'push',
+        'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:latest'
+      ]
 
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: bash
+  # Step 5: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
     args:
-      - -c
+      - '-c'
       - |
-        echo "🚀 Deploying to Cloud Run..."
-        SERVICE_NAME=my-cloudrun-service
-        REGION=asia-east1
-        IMAGE=asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA
+        SERVICE_NAME="my-cloudrun-service"
+        REGION="asia-east1"
+        IMAGE_URI="asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:latest"
 
-        if gcloud run services describe $$SERVICE_NAME --region=$$REGION --project=euphoric-world-464505-q1 >/dev/null 2>&1; then
-          echo "🔁 Updating Cloud Run service..."
+        if gcloud run services describe "$$SERVICE_NAME" --region="$$REGION" --project=euphoric-world-464505-q1 > /dev/null 2>&1; then
+          echo "Updating existing Cloud Run service..."
         else
-          echo "✨ Creating new Cloud Run service..."
+          echo "Creating new Cloud Run service..."
         fi
 
-        gcloud run deploy $$SERVICE_NAME \
-          --image=$$IMAGE \
+        gcloud run deploy "$$SERVICE_NAME" \
+          --image="$$IMAGE_URI" \
           --platform=managed \
-          --region=$$REGION \
+          --region="$$REGION" \
           --allow-unauthenticated \
           --project=euphoric-world-464505-q1
-
-images:
-  - 'asia-east1-docker.pkg.dev/euphoric-world-464505-q1/my-repo/my-app-image:$SHORT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
