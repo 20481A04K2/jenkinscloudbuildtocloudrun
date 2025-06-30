@@ -4,8 +4,7 @@ pipeline {
   environment {
     PROJECT_ID = 'euphoric-world-464505-q1'
     TRIGGER_NAME = 'jenkins-cloudrun-trigger'
-    GITHUB_REPO_NAME = 'jenkinscloudbuildtocloudrun'
-    GITHUB_REPO_OWNER = '20481A04K2'
+    REPO_ID = '20481A04K2-jenkinscloudbuildtocloudrun'  // from Cloud Console 2nd-gen name
     REGION = 'asia-east1'
     SA_EMAIL = '519516300720-compute@developer.gserviceaccount.com'
   }
@@ -29,8 +28,7 @@ pipeline {
               gcloud beta builds triggers create github \
                 --name=${TRIGGER_NAME} \
                 --region=${REGION} \
-                --repository=${GITHUB_REPO_NAME} \
-                --repository-owner=${GITHUB_REPO_OWNER} \
+                --repository=${REPO_ID} \
                 --branch-pattern="^main\$" \
                 --build-config=cloudbuild.yaml \
                 --service-account=${SA_EMAIL} \
@@ -61,7 +59,7 @@ pipeline {
       echo "❌ Pipeline failed. Check Cloud Build logs in GCP Console."
     }
     success {
-      echo "✅ Cloud Build trigger created (if needed) and triggered successfully."
+      echo "✅ Trigger created (if needed) and build triggered successfully."
     }
   }
 }
